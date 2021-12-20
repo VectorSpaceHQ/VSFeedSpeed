@@ -1,0 +1,15 @@
+plywood:
+  surface_speed: 650 # ft/min
+  hardness: "unknown"
+  chipload:
+    .125: .005
+    .25:  .015
+    .375: .021
+    .5:   .026
+
+OSB:
+  surface_speed: 650
+  hardness: "unknown"
+HDPE:
+  surface_speed: 1000
+  hardness: "unknown"
