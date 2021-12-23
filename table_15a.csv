@@ -1,12 +1,14 @@
-Material,Operation,DOC,Cutter Diameter,Feed per Tooth
-plain carbon steel,end mill,.25,.5,.001
-plain carbon steel,end mill,.25,.75,.003
-plain carbon steel,end mill,.25,1,.004
-plain carbon steel,end mill,.05,.25,.001
-plain carbon steel,end mill,.05,.5,.002
-plain carbon steel,end mill,.05,.75,.003
-plain carbon steel,end mill,.05,1,.004
-plain carbon steel,slab mill,,,.005
-plain carbon steel,form cutter,,,.005
-plain carbon steel,face mill,,,.007
-plain carbon steel,slotting,,,.005
+Material,Operation,Tool Material,DOC,Cutter Diameter,Feed,Speed
+plain carbon steel,end mill,HSS,.25,.5,.001,140
+plain carbon steel,end mill,HSS,.25,.75,.003,140
+plain carbon steel,end mill,HSS,.25,1,.004,140
+plain carbon steel,end mill,HSS,.05,.25,.001,140
+plain carbon steel,end mill,HSS,.05,.5,.002,140
+plain carbon steel,end mill,HSS,.05,.75,.003,140
+plain carbon steel,end mill,HSS,.05,1,.004,140
+plain carbon steel,slab mill,HSS,,,.005,140
+plain carbon steel,form cutter,HSS,,,.005,140
+plain carbon steel,face mill,HSS,,,.007,140
+plain carbon steel,slotting,HSS,,,.005,140
+plain carbon steel,end mill,HSS,.1,,.005,140
+aluminum,end mill,HSS,,15,165

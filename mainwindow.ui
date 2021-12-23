@@ -31,7 +31,7 @@
    <property name="currentIndex">
     <number>2</number>
    </property>
-   <widget class="QWidget" name="tab_4">
+   <widget class="QWidget" name="machine_tab">
     <attribute name="title">
      <string>Machine</string>
     </attribute>
@@ -85,7 +85,7 @@
      </property>
     </widget>
    </widget>
-   <widget class="QWidget" name="tab">
+   <widget class="QWidget" name="workpiece_tab">
     <attribute name="title">
      <string>Workpiece</string>
     </attribute>
@@ -130,7 +130,7 @@
      </layout>
     </widget>
    </widget>
-   <widget class="QWidget" name="tab_2">
+   <widget class="QWidget" name="tool_tab">
     <attribute name="title">
      <string>Tool</string>
     </attribute>
@@ -191,7 +191,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="lineEdit_2"/>
+         <widget class="QComboBox" name="tool_coating_combo_box"/>
         </item>
        </layout>
       </item>
@@ -226,7 +226,7 @@
      </layout>
     </widget>
    </widget>
-   <widget class="QWidget" name="tab_3">
+   <widget class="QWidget" name="operation_tab">
     <attribute name="title">
      <string>Operation</string>
     </attribute>
@@ -256,7 +256,7 @@
          </widget>
         </item>
         <item>
-         <widget class="QLineEdit" name="operation_input"/>
+         <widget class="QComboBox" name="operation_combo_box"/>
         </item>
        </layout>
       </item>
@@ -307,52 +307,6 @@
    <property name="frameShadow">
     <enum>QFrame::Raised</enum>
    </property>
-   <widget class="QLabel" name="label_11">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>100</y>
-      <width>101</width>
-      <height>17</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Feedrate (ipm)</string>
-    </property>
-   </widget>
-   <widget class="QLabel" name="label_12">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>130</y>
-      <width>101</width>
-      <height>17</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Speed (RPM)</string>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="feedrate_display3">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>100</y>
-      <width>41</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
-   <widget class="QLineEdit" name="speed_display">
-    <property name="geometry">
-     <rect>
-      <x>120</x>
-      <y>130</y>
-      <width>191</width>
-      <height>25</height>
-     </rect>
-    </property>
-   </widget>
    <widget class="QLabel" name="label_49">
     <property name="geometry">
      <rect>
@@ -379,21 +333,85 @@
      <string>Percent Power Required</string>
     </property>
    </widget>
-   <widget class="QLabel" name="feedrate_display">
+   <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
-      <x>180</x>
-      <y>110</y>
-      <width>62</width>
-      <height>17</height>
+      <x>10</x>
+      <y>100</y>
+      <width>222</width>
+      <height>46</height>
      </rect>
     </property>
-    <property name="text">
-     <string>TextLabel</string>
-    </property>
+    <layout class="QVBoxLayout" name="verticalLayout_4">
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_12">
+       <item>
+        <widget class="QLabel" name="label_11">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Feedrate (ipm)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="feedrate_display">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_13">
+       <item>
+        <widget class="QLabel" name="label_12">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Speed (RPM)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="speed_display">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+    </layout>
    </widget>
   </widget>
  </widget>
  <resources/>
- <connections/>
+ <connections>
+  <connection>
+   <sender>material_combo_box</sender>
+   <signal>textActivated(QString)</signal>
+   <receiver>tool_material_combo_box</receiver>
+   <slot>setCurrentText(QString)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>332</x>
+     <y>115</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>267</x>
+     <y>163</y>
+    </hint>
+   </hints>
+  </connection>
+ </connections>
 </ui>

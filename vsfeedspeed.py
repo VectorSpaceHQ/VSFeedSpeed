@@ -39,8 +39,6 @@ class MainWindow(QMainWindow):
 
     def load_table(self):
         self.table_data = pd.read_csv('table_15a.csv')
-        print(self.table_data)
-        
     
     def connect_signals(self):
         # Populate materials listbox
@@ -49,42 +47,100 @@ class MainWindow(QMainWindow):
 
         self.ui.material_combo_box.textActivated.connect(self.set_work_material)
         self.ui.material_combo_box.textActivated.connect(self.populate_tool_materials)
+        self.ui.material_combo_box.textActivated.connect(self.populate_operations)        
         
         self.ui.tool_diameter_input.textChanged['QString'].connect(self.set_diameter)
         self.ui.tool_teeth_input.textChanged['QString'].connect(self.set_teeth)
         self.ui.tool_material_combo_box.textActivated.connect(self.set_tool_material)
-        self.ui.operation_input.textChanged['QString'].connect(self.set_operation)
+        self.ui.operation_combo_box.textActivated.connect(self.set_operation)
         self.ui.doc_input.textChanged['QString'].connect(self.set_doc)
         self.ui.woc_input.textChanged['QString'].connect(self.set_woc)
 
-
     def populate_tool_materials(self):
-        pass
-        # for key,v in self.material_dict.items():
-        #     print(key,v)
+        tool_materials = set(self.filtered_df['Tool Material'].tolist())
+        for mat in tool_materials:
+            self.ui.tool_material_combo_box.addItem(mat)
+
+    def populate_operations(self):
+        operations = set(self.filtered_df['Operation'].tolist())
+        for op in operations:
+            self.ui.operation_combo_box.addItem(op)
 
     def apply_filters(self):
         # self.table_data = self.table_data.filter(like=material, axis=0)
         filtered_df = self.table_data
         filtered_df = filtered_df[filtered_df['Material'] == self.material]
-        filtered_df = filtered_df[filtered_df['DOC'] > self.operation.doc]
+        # filtered_df = filtered_df[filtered_df['DOC'] > self.operation.doc]
+        try:
+            filtered_df = filtered_df[filtered_df['Operation'] == self.operation.operation]
+        except:
+            pass
 
-        # df_sort = filtered_df.iloc[(filtered_df['DOC']-self.operation.doc).abs().argsort()[:2]]
-        # print(df_sort)
-        # print()
+        filtered_df = self.filter_doc(filtered_df)
+        filtered_df = self.filter_diameter(filtered_df)
         print(filtered_df)
-            
+        self.filtered_df = filtered_df
+
+        if len(filtered_df) == 2:
+            self.interp_results(filtered_df)
+        elif len(filtered_df) == 1:
+            self.operation.f = float(filtered_df['Feed'])
+            self.operation.s = float(filtered_df['Speed'])
+        
+        try:
+            self.operation.calc_speed()            
+            self.operation.calc_feed()
+            self.ui.feedrate_display.setText(str(self.operation.fm))
+            self.ui.speed_display.setText(str(self.operation.N))            
+        except Exception as e:
+            print("operation feedrate unknown", e)
+
+    def interp_results(self, df):
+        diameters = df['Cutter Diameter'].tolist()
+        feeds = df['Feed'].tolist()
+        speeds = df['Speed'].tolist()
+
+        feed = np.interp(self.tool.D, diameters, feeds)
+        speed = np.interp(self.tool.D, diameters, speeds)
+        self.operation.f = round(feed, 4)
+        self.operation.s = round(speed, 4)
+        
+    def filter_doc(self, df):
+        try:
+            no_dupes = df.drop_duplicates(subset=['DOC'])
+            no_dupes = no_dupes.dropna(subset=['DOC'])
+            docs = no_dupes['DOC'].tolist()
+            doc_low = find_nearest_low(docs, self.operation.doc)
+            doc_high = find_nearest_high(docs, self.operation.doc)
+            df = df[(df['DOC'] == doc_low) | (df['DOC'] == doc_high)]
+        except Exception as e:
+            print("cant calc doc", e)
+        return df
+
+    def filter_diameter(self, df):
+        try:
+            no_dupes = df.drop_duplicates(subset=['Cutter Diameter'])
+            no_dupes = no_dupes.dropna(subset=['Cutter Diameter'])
+            diams = no_dupes['Cutter Diameter'].tolist()
+            diam_low = find_nearest_low(diams, self.tool.D)
+            diam_high = find_nearest_high(diams, self.tool.D)
+            print(diam_low, diam_high)
+            df = df[(df['Cutter Diameter'] == diam_low) | (df['Cutter Diameter'] == diam_high)]
+        except Exception as e:
+            print("cant calc cutter diameter", e)
+        return df
+
+
     def set_work_material(self):
         self.material = self.ui.material_combo_box.currentText()
         self.apply_filters()
         
     def set_diameter(self):
         d = self.ui.tool_diameter_input.displayText()
-        if not d:
-            d = 0
+        if not d or d == '.':
+            d = 0.0
         self.tool.D = float(d)
-        
-        self.operation.get_feedrate()
+        self.apply_filters()
 
     def set_teeth(self):
         t = self.ui.tool_teeth_input.displayText()
@@ -94,10 +150,11 @@ class MainWindow(QMainWindow):
         
     def set_tool_material(self):
         # self.tool_material = self.op['tool_materials']["HSS"]
-        self.tool.material = self.ui.tool_material_input.displayText()
+        self.tool.material = self.ui.tool_material_combo_box.currentText()
         
     def set_operation(self):
-        self.operation.operation = self.ui.operation_input.displayText()
+        self.operation.operation = self.ui.operation_combo_box.currentText()
+        self.apply_filters()
         
     def set_doc(self):
         try:
@@ -112,7 +169,8 @@ class MainWindow(QMainWindow):
             self.operation.w = float(self.ui.woc_input.displayText())
         except:
             pass
-        
+
+    
 
             
 class Operation():
@@ -123,8 +181,7 @@ class Operation():
         self.C = 1.0 # Feed factor
         self.Q = 1.0 # Metal removal rate
         self.W = 1.0 # Tool wear factor
-        ft = 1 # feed in inch per tooth (ipt)
-        nt = 1 # number of teeth per milling cutter
+        self.f = 1 # feed in inch per tooth (ipt)
         self.N = 0
         self.w = 2 # cut width (in)
         self.doc = .25 # depth of cut (in)
@@ -138,7 +195,8 @@ class Operation():
         self.N = rpm_round(self.N)
         
     def calc_feed(self):
-        self.fm = self.f * self.tool.nt * self.N # milling machine table feed rate (ipm)
+        fm = self.f * self.tool.nt * self.N # milling machine table feed rate (ipm)
+        self.fm = round(fm, 1)
         
     def calc_power(self):
         self.get_power_constant()
@@ -161,7 +219,7 @@ class Operation():
             # self.tool_material = self.op['tool_materials']["HSS"]
             self.f = self.material['f'] * 0.001 # feed (in/tooth)
             self.s = self.material['s'] # surface speed in ft/min
-        except Error as e:
+        except Exception as e:
             print("get_feedrate failed", e)
             
     def get_power_constant(self):
@@ -240,6 +298,29 @@ def get_chipload(material, tool):
     #         chipload = load
     return chipload
 
+def find_nearest_low(array, value):
+    idx = 0
+    max_val = 0
+    for i, x in enumerate(array):
+        if x == value:
+            return value
+        elif (value - x) > 0:
+            if x > max_val:
+                max_val = x
+                idx = i
+    return array[idx]
+
+def find_nearest_high(array, value):
+    idx = len(array)-1
+    min_val = max(array)
+    for i, x in enumerate(array):
+        if x == value:
+            return value
+        if (value - x) < 0:
+            if x < min_val:
+                min_val = x
+                idx = i
+    return array[idx]    
 
 def main():
     example_3()
