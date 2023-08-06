@@ -29,7 +29,7 @@
     </rect>
    </property>
    <property name="currentIndex">
-    <number>2</number>
+    <number>1</number>
    </property>
    <widget class="QWidget" name="machine_tab">
     <attribute name="title">
@@ -104,12 +104,26 @@
         <item>
          <widget class="QLabel" name="label">
           <property name="text">
-           <string>Workpiece Material</string>
+           <string>Workpiece Material Family</string>
           </property>
          </widget>
         </item>
         <item>
          <widget class="QComboBox" name="material_combo_box"/>
+        </item>
+       </layout>
+      </item>
+      <item>
+       <layout class="QHBoxLayout" name="horizontalLayout_14">
+        <item>
+         <widget class="QLabel" name="label_6">
+          <property name="text">
+           <string>Workpiece Material Species</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QComboBox" name="material_species_combo_box"/>
         </item>
        </layout>
       </item>
@@ -295,9 +309,9 @@
   <widget class="QFrame" name="frame">
    <property name="geometry">
     <rect>
-     <x>460</x>
+     <x>520</x>
      <y>100</y>
-     <width>321</width>
+     <width>251</width>
      <height>391</height>
     </rect>
    </property>
@@ -310,7 +324,7 @@
    <widget class="QLabel" name="label_49">
     <property name="geometry">
      <rect>
-      <x>120</x>
+      <x>100</x>
       <y>20</y>
       <width>62</width>
       <height>17</height>
@@ -320,26 +334,13 @@
      <string>Results</string>
     </property>
    </widget>
-   <widget class="QLabel" name="label_50">
-    <property name="geometry">
-     <rect>
-      <x>10</x>
-      <y>170</y>
-      <width>171</width>
-      <height>17</height>
-     </rect>
-    </property>
-    <property name="text">
-     <string>Percent Power Required</string>
-    </property>
-   </widget>
    <widget class="QWidget" name="">
     <property name="geometry">
      <rect>
       <x>10</x>
       <y>100</y>
       <width>222</width>
-      <height>46</height>
+      <height>96</height>
      </rect>
     </property>
     <layout class="QVBoxLayout" name="verticalLayout_4">
@@ -368,6 +369,30 @@
       </layout>
      </item>
      <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_15">
+       <item>
+        <widget class="QLabel" name="label_17">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Plunge Rate (ipm)</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="plunge_rate_display">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
       <layout class="QHBoxLayout" name="horizontalLayout_13">
        <item>
         <widget class="QLabel" name="label_12">
@@ -378,12 +403,36 @@
           </size>
          </property>
          <property name="text">
-          <string>Speed (RPM)</string>
+          <string>Spindle Speed (RPM)</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QLabel" name="speed_display">
+         <property name="text">
+          <string>TextLabel</string>
+         </property>
+        </widget>
+       </item>
+      </layout>
+     </item>
+     <item>
+      <layout class="QHBoxLayout" name="horizontalLayout_16">
+       <item>
+        <widget class="QLabel" name="label_50">
+         <property name="minimumSize">
+          <size>
+           <width>150</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="text">
+          <string>Power Required</string>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QLabel" name="power_display">
          <property name="text">
           <string>TextLabel</string>
          </property>
