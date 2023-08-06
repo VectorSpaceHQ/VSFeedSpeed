@@ -20,6 +20,7 @@ class MainWindow(QMainWindow):
 
         self.tool = Tool()
         self.material = Material()
+        self.species = None
         self.operation = Operation(self.tool, self.material)
 
         # self.load_materials()
@@ -55,6 +56,7 @@ class MainWindow(QMainWindow):
         self.ui.material_combo_box.textActivated.connect(self.set_work_material)
         self.ui.material_combo_box.textActivated.connect(self.populate_tool_materials)
         self.ui.material_combo_box.textActivated.connect(self.populate_operations)
+        self.ui.material_species_combo_box.textActivated.connect(self.set_material_species)
 
         self.ui.tool_diameter_input.textChanged['QString'].connect(self.set_diameter)
         self.ui.tool_teeth_input.textChanged['QString'].connect(self.set_teeth)
@@ -62,6 +64,11 @@ class MainWindow(QMainWindow):
         self.ui.operation_combo_box.textActivated.connect(self.set_operation)
         self.ui.doc_input.textChanged['QString'].connect(self.set_doc)
         self.ui.woc_input.textChanged['QString'].connect(self.set_woc)
+
+        self.initialize_values()
+
+    def initialize_values(self):
+        self.ui.tool_teeth_input.setText("1")
 
     def populate_tool_materials(self):
         tool_materials = set(self.filtered_df['Tool Material'].tolist())
@@ -82,8 +89,8 @@ class MainWindow(QMainWindow):
         filtered_df = filtered_df[filtered_df['Material Family'] == self.material]
         # filtered_df = filtered_df[filtered_df['DOC'] > self.operation.doc]
 
-        # try:
-        #     filtered_df = filtered_df[filtered_df['material species'] == self.materials]
+        if self.species:
+            filtered_df = filtered_df[filtered_df['material species'] == self.species]
 
         try:
             filtered_df = filtered_df[filtered_df['Operation'] == self.operation.operation]
@@ -92,22 +99,32 @@ class MainWindow(QMainWindow):
 
         filtered_df = self.filter_doc(filtered_df)
         filtered_df = self.filter_diameter(filtered_df)
+
+        print("\nThere are {} results.".format(len(filtered_df)))
         print(filtered_df)
         self.filtered_df = filtered_df
+
+
 
         if len(filtered_df) == 2:
             self.interp_results(filtered_df)
         elif len(filtered_df) == 1:
             self.operation.f = float(filtered_df['Feed'])
-            self.operation.s = float(filtered_df['Speed'])
+            self.operation.ss = float(filtered_df['Speed'])
+
 
         try:
-            self.operation.calc_speed()
-            self.operation.calc_feed()
-            self.ui.feedrate_display.setText(str(self.operation.fm))
-            self.ui.speed_display.setText(str(self.operation.N))
+            self.set_feed_and_speed(filtered_df)
         except Exception as e:
-            print("operation feedrate unknown", e)
+            print("cannot calc feed and speed", e)
+
+        # try:
+        #     self.operation.calc_RPM()
+        #     self.operation.calc_feedrate()
+        #     self.ui.feedrate_display.setText(str(self.operation.fm))
+        #     self.ui.speed_display.setText(str(self.operation.N))
+        # except Exception as e:
+        #     print("operation feedrate unknown", e)
 
     def interp_results(self, df):
         diameters = df['Cutter Diameter'].tolist()
@@ -117,7 +134,7 @@ class MainWindow(QMainWindow):
         feed = np.interp(self.tool.D, diameters, feeds)
         speed = np.interp(self.tool.D, diameters, speeds)
         self.operation.f = round(feed, 4)
-        self.operation.s = round(speed, 4)
+        self.operation.ss = round(speed, 4)
 
     def filter_doc(self, df):
         try:
@@ -146,21 +163,44 @@ class MainWindow(QMainWindow):
 
 
     def set_work_material(self):
+        # if work material changes, reset the df filters. Otherwise species disappear
+        self.filtered_df = self.table_data
+
         self.material = self.ui.material_combo_box.currentText()
         self.apply_filters()
+        self.populate_species()
+
+    def populate_species(self):
+        self.ui.material_species_combo_box.clear()
+        species = set(self.filtered_df['material species'].tolist())
+        for s in species:
+            self.ui.material_species_combo_box.addItem(s)
+
+    def set_material_species(self):
+        print("SET MATERIAL SPECIES")
+        self.species = self.ui.material_species_combo_box.currentText()
+        self.apply_filters()
+
 
     def set_diameter(self):
         d = self.ui.tool_diameter_input.displayText()
         if not d or d == '.':
             d = 0.0
-        self.tool.D = float(d)
+
+        try:
+            self.tool.D = float(d)
+            # update DOC accordingly
+            self.set_doc(self.tool.D)
+        except:
+            pass
         self.apply_filters()
 
     def set_teeth(self):
         t = self.ui.tool_teeth_input.displayText()
         if not t:
-            t = 0
+            t = 1
         self.tool.nt = float(t)
+        self.update()
 
     def set_tool_material(self):
         # self.tool_material = self.op['tool_materials']["HSS"]
@@ -170,9 +210,12 @@ class MainWindow(QMainWindow):
         self.operation.operation = self.ui.operation_combo_box.currentText()
         self.apply_filters()
 
-    def set_doc(self):
-        try:
+    def set_doc(self, doc=None):
+        if doc == None:
             doc = float(self.ui.doc_input.displayText())
+        else:
+            self.ui.doc_input.setText(str(doc))
+        try:
             self.operation.doc = doc
             self.apply_filters()
         except:
@@ -184,6 +227,35 @@ class MainWindow(QMainWindow):
         except:
             pass
 
+    def set_feed_and_speed(self, df):
+        """
+        Interpolate the feed and speed, then set them in the display.
+        """
+        print("\n\nSetting feed and speed\n\n")
+
+        if len(df) == 2:
+            diameters = df['Cutter Diameter'].tolist()
+            feeds = df['Feed'].tolist()
+            speeds = df['Speed'].tolist()
+            feed = np.interp(self.tool.D, diameters, feeds)
+            speed = np.interp(self.tool.D, diameters, speeds)
+            self.operation.f = round(feed, 4)
+            self.operation.ss = round(speed, 4)
+        elif len(df) == 1:
+            self.operation.f = float(df['Feed'])
+            self.operation.ss = float(df['Speed'])
+        else:
+            print("Too many results.")
+
+        self.operation.calc_RPM()
+        self.operation.calc_feedrate()
+
+        self.ui.feedrate_display.setText(str(self.operation.fm))
+        self.ui.speed_display.setText(str(self.operation.N))
+
+
+    def update(self):
+        self.apply_filters()
 
 
 
@@ -208,16 +280,16 @@ class Operation():
         # self.calc_feed()
 
 
-    def calc_speed(self):
+    def calc_RPM(self):
         self.N = (12 * self.ss) / (math.pi * self.tool.D)
-        print(self.ss, self.tool.D)
         self.N = rpm_round(self.N)
+        print("RPM: {}, diameter: {}".format(self.N, self.tool.D))
 
-    def calc_feed(self):
-        self.calc_speed()
-        print(self.f, self.N)
+    def calc_feedrate(self):
+        self.calc_RPM()
         fm = self.f * self.tool.nt * self.N # milling machine table feed rate (ipm)
         self.fm = round(fm, 1)
+        print("feedrate: {}".format(self.fm))
 
     def calc_power(self):
         self.get_power_constant()
@@ -268,7 +340,7 @@ class Operation():
 
 
 class Tool():
-    def __init__(self, diameter=None, flutes=None, material=None):
+    def __init__(self, diameter=None, flutes=1, material=None):
         self.D = diameter # Diameter (inches)
         self.flutes = flutes # Number of flutes
         self.nt = flutes
@@ -277,6 +349,7 @@ class Tool():
         self.rpm = 0
         self.chipload = 0
         self.sf = 1
+
 
     def adjust_sf(self):
         pass
