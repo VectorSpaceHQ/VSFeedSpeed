@@ -370,8 +370,8 @@ class Material(Tool):
         #         print(exc)
 
 
-        self.material_list_complete = pd.read_csv('./data/mdf.csv')
-        self.material_list = self.material_list_complete
+        # self.material_list_complete = pd.read_csv('./data/mdf.csv')
+        # self.material_list = self.material_list_complete
         # print(self.material_list)
 
         # print(self.filter(self.material_list, "Material Family", "wood"))
