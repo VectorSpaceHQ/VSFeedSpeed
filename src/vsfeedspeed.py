@@ -6,6 +6,9 @@ import sys
 import os
 import csv
 import pandas as pd
+from tool import Tool
+from material import Material
+from operation import Operation
 
 from PyQt5.QtWidgets import QMainWindow, QGraphicsView, QFileDialog, QApplication, QMessageBox
 from mainwindow import Ui_vsfeedspeedgui
@@ -20,7 +23,6 @@ class MainWindow(QMainWindow):
 
         self.tool = Tool()
         self.material = Material()
-        self.species = None
         self.operation = Operation(self.tool, self.material)
 
         # self.load_materials()
@@ -53,7 +55,7 @@ class MainWindow(QMainWindow):
         for material in self.materials:
             self.ui.material_combo_box.addItem(material)
 
-        self.ui.material_combo_box.textActivated.connect(self.set_work_material)
+        self.ui.material_combo_box.textActivated.connect(self.set_material_family)
         self.ui.material_combo_box.textActivated.connect(self.populate_tool_materials)
         self.ui.material_combo_box.textActivated.connect(self.populate_operations)
         self.ui.material_species_combo_box.textActivated.connect(self.set_material_species)
@@ -80,17 +82,26 @@ class MainWindow(QMainWindow):
         for op in operations:
             self.ui.operation_combo_box.addItem(op)
 
+    def filter_materials(self, df):
+        print("filtering materials...")
+        filtered_df = df[df['Material Family'] == self.material.family]
+        self.filtered_df = filtered_df
+
     def apply_filters(self):
         self.ui.feedrate_display.setText("N/A")
         self.ui.speed_display.setText("N/A")
 
         # self.table_data = self.table_data.filter(like=material, axis=0)
         filtered_df = self.table_data
-        filtered_df = filtered_df[filtered_df['Material Family'] == self.material]
+        # filtered_df = filtered_df[filtered_df['Material Family'] == self.material.family]
         # filtered_df = filtered_df[filtered_df['DOC'] > self.operation.doc]
 
-        if self.species:
-            filtered_df = filtered_df[filtered_df['material species'] == self.species]
+        if self.material.species:
+            filtered_df = filtered_df[filtered_df['material species'] == self.material.species]
+
+        # filter tools
+        if self.tool.material:
+            filtered_df = filtered_df[filtered_df['Tool Material'] == self.tool.material]
 
         try:
             filtered_df = filtered_df[filtered_df['Operation'] == self.operation.operation]
@@ -137,6 +148,9 @@ class MainWindow(QMainWindow):
         self.operation.ss = round(speed, 4)
 
     def filter_doc(self, df):
+        """
+        Depth of Cut
+        """
         try:
             no_dupes = df.drop_duplicates(subset=['DOC'])
             no_dupes = no_dupes.dropna(subset=['DOC'])
@@ -162,15 +176,18 @@ class MainWindow(QMainWindow):
         return df
 
 
-    def set_work_material(self):
+    def set_material_family(self):
         # if work material changes, reset the df filters. Otherwise species disappear
+        print("\n\nmaterial family changed!\n\n")
         self.filtered_df = self.table_data
 
-        self.material = self.ui.material_combo_box.currentText()
-        self.apply_filters()
+        self.material.reset()
+        self.material.set_material(self.ui.material_combo_box.currentText())
+        self.filter_materials(self.filtered_df)
         self.populate_species()
 
     def populate_species(self):
+        # given the current material family selection, populate dropdown with all possible species
         self.ui.material_species_combo_box.clear()
         species = set(self.filtered_df['material species'].tolist())
         for s in species:
@@ -178,7 +195,7 @@ class MainWindow(QMainWindow):
 
     def set_material_species(self):
         print("SET MATERIAL SPECIES")
-        self.species = self.ui.material_species_combo_box.currentText()
+        self.material.species = self.ui.material_species_combo_box.currentText()
         self.apply_filters()
 
 
@@ -205,6 +222,7 @@ class MainWindow(QMainWindow):
     def set_tool_material(self):
         # self.tool_material = self.op['tool_materials']["HSS"]
         self.tool.material = self.ui.tool_material_combo_box.currentText()
+        self.apply_filters()
 
     def set_operation(self):
         self.operation.operation = self.ui.operation_combo_box.currentText()
@@ -259,142 +277,16 @@ class MainWindow(QMainWindow):
 
 
 
-class Operation():
-    def __init__(self, tool, material, width=None, doc=None):
-        self.Pm = 0 # Power at motor
-        self.E = 1.0 # Machine tool efficiency factor
-        self.Kp = 1.0 # Power constant
-        self.C = 1.0 # Feed factor
-        self.Q = 1.0 # Metal removal rate
-        self.W = 1.0 # Tool wear factor
-        self.f = .01 # feed in inch per tooth (ipt) AKA chipload
-        self.N = 0
-        self.w = 2 # cut width (in)
-        self.doc = .25 # depth of cut (in)
-        self.ss = 0 # surface speed (ipm) or Cutting speed
-
-        self.tool = tool
-        self.material = material
-
-        # self.get_surf_speed()
-        # self.calc_feed()
-
-
-    def calc_RPM(self):
-        self.N = (12 * self.ss) / (math.pi * self.tool.D)
-        self.N = rpm_round(self.N)
-        print("RPM: {}, diameter: {}".format(self.N, self.tool.D))
-
-    def calc_feedrate(self):
-        self.calc_RPM()
-        fm = self.f * self.tool.nt * self.N # milling machine table feed rate (ipm)
-        self.fm = round(fm, 1)
-        print("feedrate: {}".format(self.fm))
-
-    def calc_power(self):
-        self.get_power_constant()
-
-        self.Q = self.fm * self.w * self.doc
-        self.Pm = (self.Kp * self.C * self.Q * self.W) / self.E
-
-    def set_operation(self):
-        self.operation = ''
-
-    def get_surf_speed(self):
-        try:
-            material_df = self.material.material_list
-
-            print("HERE")
-            print(self.tool.material)
-            material_df = material_df[(material_df["Tool Material"] == self.tool.material)]
-
-            print(material_df)
-            sys.exit()
-            # self.ss = self.material.material_dict['materials'][material]['operations']['End Milling']['tool_materials']['HSS']['s']
-            # self.f = self.material.material_dict['materials'][material]['operations']['End Milling']['tool_materials']['HSS']['s']
-            self.ss = self.material['s']
-            self.f = self.material['f']
-        except:
-            print("Material not found. Surface speed and or chipload not acquired.")
-
-    def get_feedrate(self):
-        try:
-            # self.op = self.material.material_dict['materials'][self.material.material]['operations']['End Milling']
-            # self.tool_material = self.op['tool_materials']["HSS"]
-            self.f = self.material['f'] * 0.001 # feed (in/tooth)
-            self.s = self.material['s'] # surface speed in ft/min
-        except Exception as e:
-            print("get_feedrate failed", e)
-
-    def get_power_constant(self):
-        """
-        Once material is known, lookup power constant
-        """
-        with open("power_constants.yaml", "r") as stream:
-            try:
-                power_constants = yaml.safe_load(stream)
-            except yaml.YAMLError as exc:
-                print(exc)
-
-        self.Kp = power_constants["Material"][self.material.material]["Brinell Hardness"][100]['Kp']
-
-
-class Tool():
-    def __init__(self, diameter=None, flutes=1, material=None):
-        self.D = diameter # Diameter (inches)
-        self.flutes = flutes # Number of flutes
-        self.nt = flutes
-        self.stickout = 0.0
-        self.material = material
-        self.rpm = 0
-        self.chipload = 0
-        self.sf = 1
-
-
-    def adjust_sf(self):
-        pass
-
-
-class Material(Tool):
-    def __init__(self, material=None):
-        super().__init__()
-        name = ''
-        hardness = 1.0
-        surface_speed = 1.0 #ft/min
-
-        # with open("mdf_data.yaml", "r") as stream:
-        # # with open("cutting_feed_speed_for_milling_aluminum.yaml", "r") as stream:
-        #     try:
-        #         self.material_dict = yaml.safe_load(stream)
-        #     except yaml.YAMLError as exc:
-        #         print(exc)
-
-
-        # self.material_list_complete = pd.read_csv('./data/mdf.csv')
-        # self.material_list = self.material_list_complete
-        # print(self.material_list)
-
-        # print(self.filter(self.material_list, "Material Family", "wood"))
-
-        if material:
-            self.set_material(material)
-
-    def set_material(self, material):
-        self.material = material
-        self.material_list = self.material_list[
-            (self.material_list["material species"] == material)]
-
-        if len(self.material_list) == 0:
-            print("Error: No matching materials found in database.")
 
 
 
 
-def rpm_round(x):
-    if x < 1000:
-        return int(round(x / 10.0)) * 10
-    else:
-        return int(round(x / 100.0)) * 100
+
+
+
+
+
+
 
 def calc_feedrate(material, tool):
     chipload = get_chipload(material, tool)
